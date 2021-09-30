@@ -1,0 +1,45 @@
+name: update
+
+on: workflow_dispatch
+
+jobs:
+  update:
+    runs-on: self-hosted
+    steps:
+    - name: Checkout Heatmap Data
+      uses: actions/checkout@v2
+      with:
+        repository: KhooHaoYit/Covid19-Malaysia-Heatmap-Data
+        path: ./HeatmapData
+        token: ${{ github.token }}
+    - name: Checkout Heatmap Updater
+      uses: actions/checkout@v2
+      with:
+        repository: KhooHaoYit/HeatmapUpdater
+        path: ./HeatmapUpdater
+        ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
+    - name: Setup Node.js environment
+      uses: actions/setup-node@v2
+      with:
+        node-version: 16
+    - name: Install Dependencies
+      run: npm install --production
+      working-directory: ./HeatmapUpdater
+    - name: Run Heatmap Updater
+      run: npm start
+      working-directory: ./HeatmapUpdater
+      env:
+        NODE_ENV: production
+        DATA_FOLDER: ../HeatmapData
+    - name: Commit changes
+      run: |
+        git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git diff-index --quiet HEAD || git commit -am "Update Heatmap"
+      working-directory: ./HeatmapData
+    - name: Push changes
+      uses: ad-m/github-push-action@master
+      with:
+        directory: ./HeatmapData
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        branch: main
